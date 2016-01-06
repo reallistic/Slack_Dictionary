@@ -14,8 +14,17 @@ class FlaskRequest(Request):
     created_usec = None
 
     def __init__(self, *args, **kwargs):
-        super(UsefulRequest, self).__init__(*args, **kwargs)
+        super(FlaskRequest, self).__init__(*args, **kwargs)
         self.created_usec = get_usec_timestamp()
+
+    @property
+    def json(self):
+        json_data = self.get_json(silent=True, force=True) or {}
+        if not json_data and self.form:
+            json_data = self.form.to_dict()
+        if not json_data and self.values:
+            json_data = self.values.to_dict()
+        return json_data
 
     def get_loggable_dict(self):
         """A dict representation of that is good for loggin"""
@@ -135,7 +144,7 @@ class FlaskApp(Flask):
 
 def create_app(name=None, config=None, **kwargs):
     """Creates a configured Flask app"""
-    app = Flask(name or __name__, **kwargs)
+    app = FlaskApp(name or __name__, **kwargs)
     if config:
         app.config.from_object(config)
 

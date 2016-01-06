@@ -13,7 +13,8 @@ app_bp = Blueprint('app', __name__)
 
 @app_bp.route('/', methods=['POST'])
 def define_a_word():
-    data = request.get_json(force=True, silent=True) or {}
+    data = request.json
+    print data
     form = SlashCommandForm.from_json(data)
     form.validate()
 
