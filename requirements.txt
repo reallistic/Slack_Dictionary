@@ -9,3 +9,4 @@ redis==2.4.9
 gunicorn
 nose
 mock==1.0.1
+newrelic
