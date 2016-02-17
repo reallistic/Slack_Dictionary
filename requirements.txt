@@ -8,4 +8,4 @@ requests
 redis==2.4.9
 gunicorn
 nose
-mock
+mock==1.0.1
