@@ -1,0 +1,25 @@
+machine:
+    services:
+        - redis
+        - mongodb
+    python:
+        version: 2.7.10
+dependencies:
+    override:
+        - pip install --use-mirrors -r requirements.txt
+    cache_directories:
+        - mongodb-linux-x86_64-2.6.4
+    pre:
+        - if [[ ! -d mongodb-linux-x86_64-2.6.4 ]]; then wget http://downloads.mongodb.org/linux/mongodb-linux-x86_64-2.6.4.tgz && tar xvzf mongodb-linux-x86_64-2.6.4.tgz; fi
+        - sudo /etc/init.d/mongodb stop
+        - sudo cp mongodb-linux-x86_64-2.6.4/bin/* /usr/bin
+        - sudo /etc/init.d/mongodb start
+test:
+    override:
+        - nosetests
+
+deployment:
+    production:
+        branch: master
+        commands:
+            - git push -f git@heroku.com:slack-dictionary.git $CIRCLE_SHA1:refs/heads/master

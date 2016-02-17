@@ -6,3 +6,6 @@ WTForms-JSON==0.2.10
 flask-wtf==0.9.5
 requests
 redis==2.4.9
+gunicorn
+nose
+mock
