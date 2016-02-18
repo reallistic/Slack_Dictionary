@@ -19,7 +19,7 @@ test:
         - nosetests
 
 deployment:
-    production:
+    push_to_server:
         branch: master
         commands:
-            - git push -f git@heroku.com:slack-dictionary.git $CIRCLE_SHA1:refs/heads/master
+            - ssh circleci@rosekings.com "./updateversion.sh ${CIRCLE_SHA1}"
