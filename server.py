@@ -4,7 +4,7 @@ from gevent import monkey
 monkey.patch_all()
 
 import os
-if os.getenv('DYNO'):
+if os.getenv('ENV') and os.getenv('ENV') == 'PROD':
     import newrelic.agent
     newrelic.agent.initialize('newrelic.ini', 'api')
 import argparse
