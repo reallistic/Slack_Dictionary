@@ -3,7 +3,7 @@
 """All app routes."""
 
 
-from flask import Blueprint, request
+from flask import Blueprint, request, current_app
 from .forms import SlashCommandForm
 from .client import get_definition
 from .helpers import make_json_response
@@ -14,7 +14,6 @@ app_bp = Blueprint('app', __name__)
 @app_bp.route('/', methods=['POST'])
 def define_a_word():
     data = request.json
-    print data
     form = SlashCommandForm.from_json(data)
     form.validate()
 

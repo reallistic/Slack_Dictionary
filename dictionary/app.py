@@ -8,6 +8,7 @@ from flask import Flask, Request, Response, json, current_app, request
 from .core import cache, errors, cors
 from .helpers import iso8601_from_usec, get_usec_timestamp
 from .routes import app_bp
+from werkzeug.exceptions import ClientDisconnected
 
 
 class FlaskRequest(Request):
@@ -28,15 +29,15 @@ class FlaskRequest(Request):
 
     def get_loggable_dict(self):
         """A dict representation of that is good for loggin"""
-        rv = {'method', self.method,
-              'path', self.path,
-              'args', self.args,
-              'ssl', self.is_secure,
-              'ts', iso8601_from_usec(self.created_usec),
-              'ip', self.remote_addr,
-              'length', self.content_length or 0,
-              'json', self.get_json(silent=True),
-              'useragent', self.user_agent.string}
+        rv = {'method': self.method,
+              'path': self.path,
+              'args': self.args,
+              'ssl': self.is_secure,
+              'ts': iso8601_from_usec(self.created_usec),
+              'ip': self.remote_addr,
+              'length': self.content_length or 0,
+              'json': self.json,
+              'useragent': self.user_agent.string}
 
         for key in rv.keys():
             if rv[key] is None:
@@ -53,9 +54,9 @@ class FlaskResponse(Response):
         response_data = self.get_data() if not self.direct_passthrough else None
         response_length = len(response_data) if response_data else None
 
-        rv = {'status', self.status_code,
-              'length', response_length,
-              'latency', latency}
+        rv = {'status': self.status_code,
+              'length': response_length,
+              'latency': latency}
 
         # Include JSON response depending if content type suggests it's
         # available.
@@ -78,7 +79,7 @@ class FlaskApp(Flask):
     def log_warning(self, **kwargs):
         """Logs WARNIGN and includes the request.
         """
-        info = {}
+        info = dict()
 
         if request:
             info['request'] = request.get_loggable_dict()
@@ -94,7 +95,7 @@ class FlaskApp(Flask):
     def log_info(self, **kwargs):
         """Logs INFO and includes the request.
         """
-        info = {}
+        info = dict()
 
         if request:
             info['request'] = request.get_loggable_dict()
@@ -119,8 +120,8 @@ class FlaskApp(Flask):
         if isinstance(exc_value, ClientDisconnected):
             return
 
-        info = {'type', str(exc_type),
-                'message', str(exc_value.message)}
+        info = {'type': str(exc_type),
+                'message': str(exc_value.message)}
 
         # If we're handling a client disconnected error then we can't access
         # the requeset payload.
@@ -155,9 +156,17 @@ def create_app(name=None, config=None, **kwargs):
     app.register_blueprint(app_bp)
 
     #app.logger.set_level(logging.DEBUG)
-    #handler = logging.StreamHandler()
-    #handler.setLevel(logging.DEBUG)
-    #app.logger.addHandler(handler)
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(handler)
 
+    @app.after_request
+    def log_details(response):
+        data = {'request': request.get_loggable_dict(),
+                'response': response.get_loggable_dict()}
+        text = json.dumps(data)
+        app.logger.info(json.dumps(data))
+        print text
+        return response
 
     return app
