@@ -3,13 +3,16 @@
 """Factory function for creating API apps."""
 
 
-import logging
 from flask import Flask, Request, Response, json, current_app, request
+from threading import Lock
 from .core import cache, errors, cors
 from .helpers import iso8601_from_usec, get_usec_timestamp
+from .logger import setup_logger
 from .routes import app_bp
 from werkzeug.exceptions import ClientDisconnected
 
+
+_logger_lock = Lock()
 
 class FlaskRequest(Request):
     created_usec = None
@@ -136,10 +139,17 @@ class FlaskApp(Flask):
 
         self.logger.error({'exception': info}, exc_info=True)
 
-    def setup_logger(self):
+    @property
+    def logger(self):
         """Overrides the default logger property in Flask"""
         # Add json log formatter an such
-        self.logger
+        if self._logger and self._logger.name == self.logger_name:
+            return self._logger
+        with _logger_lock:
+            if self._logger and self._logger.name == self.logger_name:
+                return self._logger
+            self._logger = rv = setup_logger(self)
+            return rv
 
 
 
@@ -154,19 +164,5 @@ def create_app(name=None, config=None, **kwargs):
     errors.init_app(app)
 
     app.register_blueprint(app_bp)
-
-    #app.logger.set_level(logging.DEBUG)
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.DEBUG)
-    app.logger.addHandler(handler)
-
-    @app.after_request
-    def log_details(response):
-        data = {'request': request.get_loggable_dict(),
-                'response': response.get_loggable_dict()}
-        text = json.dumps(data)
-        app.logger.info(json.dumps(data))
-        print text
-        return response
 
     return app
